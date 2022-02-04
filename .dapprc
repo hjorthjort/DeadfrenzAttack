@@ -1,0 +1,11 @@
+# To put in secrets.sh:
+# export MAINNET_RPC_URL=
+source secrets.sh
+
+#
+# Test settings
+export HEVM_RPC=yes
+export ETH_RPC_URL=$MAINNET_RPC_URL
+
+export DAPP_TEST_ADDRESS=0x1F9fbD2F6a8754Cd56D4F56ED35338A63C5Bfd1f
+export DAPP_TEST_NUMBER=14140292
