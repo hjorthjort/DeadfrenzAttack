@@ -15,6 +15,8 @@ interface Deadfrenz {
     function balanceOf(address owner, uint256 id) external view returns (uint256);
 }
 
+// An upgradable/proxy contract that held a Deadfella at the time of the
+// snapshot can add the code below and mint as many passes as they like.
 contract DeadfrenzattackTest is DSTest {
 
     Deadfrenz constant deadfrenz = Deadfrenz(0x090f688f0C11a8671C47d833AF3Cf965c30d3C35);
