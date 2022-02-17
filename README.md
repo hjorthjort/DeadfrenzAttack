@@ -1,3 +1,7 @@
+# Report
+
+[[REPORT.md]
+
 # Reentrancy
 
 The Deadfrenz mint pass contract is vulnerable to reentrancy.
