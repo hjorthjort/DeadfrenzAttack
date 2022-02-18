@@ -11,22 +11,19 @@ That's my day job.
 
 Usually, that means I get paid (handsomely) to look at code and find potential exploits.
 It's a great experience, securing protocols, helping devs and getting thanked when I find something serious.
-This time was different.
-For one thing, I had to sit on the secret.
-I tried sharing the exploit with the devs, but got no responese.
-Unfortunately, that meant all I could do was sit on my hands, not make noise and just keep my fingers crossed.
-It was an unusal decision, and I'll explain my motivation towards the end.
-I hope you agree I did the right thing.
+I also just enjoy the puzzle. 
 
-**But I also think we should be doing better.**
-I'm not happy with the answers I got to this explout report, and frankly, I think neither should you be.
+I found two exploits on the Deadfrenz Lab Access Pass mint.
+I tried to notify the team, but got little response back.
+Both exploits had to do with minting, so they are no longer exploitable.
+Here is what I found, and what happened, and what I think of it.
 
-**Note**: Since there has been no public disclosure of the bug, I can't know if the team ever addressed it.
-They did disclose an issue early on for which they paused the contract, but that is a different issue from the ones I bring up here.
+**Note**: The team did disclose an issue early on for which they paused the contract, but that is a different issue from the ones I bring up here.
 
 ![](screenshots/announcement_discord.png)
 
 I do know that the reentrancy issue (the most severe one) was never exploited, but I can't say if that's luck or if the team did the mitigation I suggested.
+Either way I never got a proper response.
 
 ## Checking the code, finding the bugs
 
@@ -43,21 +40,25 @@ One was extremely severe, but I didn't know if it was exploitable.
 
 ## The kinda bad
 
-In short, anyone who was allowed to mint a few different paid passes (0.1 ETH or 0.15 ETH each) would not have to pay full price.
+In short, anyone who was allowed to mint a few different types of paid passes (0.1 ETH or 0.15 ETH each) would not have to pay full price.
 At most, someone could mint their passes for 1/3rd of the price.
 This would be bad.
+
 But even if some users knew, they would each be able to cheat the protocol/team out of at most a few ETH.
 There would be no real loss to users, and the attack does not really scale well.
 I made a proof of concept attack and concluded it was possible, and I told the team.
-But if that was all, I wouldn't be writing this post now.
+There wasn't really much to do about it, except maybe telling people and let them know that they got a discount.
+
+## The very bad
 
 The second attack put user funds (passes) at serious risk, and was infinitely scalable.
 If it had been attacked, all your passes could have become worthless and we would need to roll back the whole mint and redo.
 Some of you could have bought worthless passes on OpenSea or LooksRare, for real ETH, and be stuck rekt.
 
-## The very bad
-
-Here's how it works:
+Here's how it works.
+Below is the vulnerable function.
+`claim` is what you call when you as, for example, a DeadFellaz holder would try to claim a mint pass.
+`numPasses` is the amount of passes you want to mint right now, `amount` the total amount of passes you are allowed to mint, `mpIndex` defines the type, and the `merkleProof` is a method for showing you are actually whitelisted.
 
 ```solidity
     function claim(
@@ -89,8 +90,12 @@ The issue is the `if`-branch.
 It makes some sense that you would want to send any extra ETH back (though just checking that the amount sent is exactly right is usually better).
 But what makes this very dangerous is the send happens before any update to the mint contract.
 That's why we always say "checks, effects, interactions".
+
+<blockquote class="twitter-tweet"><p lang="und" dir="ltr"><a href="https://t.co/TfLxm7Rzdc">https://t.co/TfLxm7Rzdc</a> <a href="https://t.co/N76yeGSv9g">pic.twitter.com/N76yeGSv9g</a></p>&mdash; hjort.eth (🥋,🥋) 🦇🔊 (@rikardhjort) <a href="https://twitter.com/rikardhjort/status/1489671383160442884?ref_src=twsrc%5Etfw">February 4, 2022</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+
 Don't interact with an external address until you have updated your local variables.
 Specifically, the number of minted passes has not been updated yet.
+This bug could thus have been averted if you just put the `if`-clause at the end of the function.
 
 This is a typical reentrancy bug.
 An attacker can easily set up a contract with a fallback function and send 1 wei more than necessary when calling `claim`.
@@ -98,23 +103,23 @@ That will cause this function to call back to the sender, triggering the fallbac
 
 This way, the attacker can mint as many passes as they like, they can even mint more than the max total ceiling on the tokens, because at every call the contract thinks it's performing the first mint.
 
-That would be bad.
-
-Normally, as a whitehat, if I found this and didn't get an immediate response from the team I would just perform the attack myself, drain all the tokens, and then coordinate with the team about how to redistribute.
-That's better than having such an exploit sit out in the open, waiting for a blackhat hacker to steal all the tokens and sell them for market price on OpenSea, making of with a bunch of ETH.
+That would be very, very bad.
 
 But I couldn't, and that is what makes this exploit so different, and also why I didn't disclose it why the mint was ongoing.
 
 ## Why didn't I exploit this?
 
 First of all -- I would have if I could, but as a whitehat.
+
+Normally, as a whitehat, if I found this and didn't get an timely response from the team I would just perform the attack myself.
+That's better than having such an exploit sit out in the open, waiting for a blackhat hacker to steal all the tokens and sell them for market price on OpenSea, making of with a bunch of ETH.
 I would have minted all the tokens in the pool I could exploit, then chat with the devs and figure out how to make sure they get properly distributed.
 100% doable, not even very expensive (except for me, I have to pay a lot of gas).
 
 But I couldn't.
 Because this is a reentrancy attack, only a contract can execute it.
 I was holding my Deadfella in a regular externally owned address (EOA).
-Because they are using a Merkle proof where the `msg.sender` is included in the node, there's no way I or anyone else can make the call from any address not included in the snapshot.
+Because they are using a Merkle proof, and it included the `msg.sender` in the node, there's no way I or anyone else can make the call from any address not included in the snapshot.
 That also means that even if you held your eligible NFT in a contract at the time of the snapshot, you might not be able to perform the reentrancy attack.
 
 ## So what's the problem?
@@ -143,18 +148,36 @@ The reentrancy bug was never exploited.
 I have checked the [contract log of internal transactions](https://etherscan.io/txsInternal?a=0x090f688f0c11a8671c47d833af3cf965c30d3c35&&m=advanced&p=200), and the earliest one is from after minting closed.
 Phew, I guess.
 
+## Notifying the team
+
+Here's what I sent to the Deadfellaz Twitter account:
+
+![](screenshots/notification1_twitter.png)
+
+I also notified `@betty_nft` and `@psych_nft` that they should check those DMs, because I assumed they may get a lot of DMs.
+I got no responses on Twitter.
+
+I also went on Discord and tried to get in contact with a mod or anyone else who could put me in touch with the devs, or at least let me know my message had been received by someone who would be able to evaluate it.
+I did get a response, but it was dismissive.
+
+![](screenshots/mod_discord.png)
+
 ## Feedback time
 
 So here's what the team did well:
 
 - They did a secret snapshot + Merkle proof drop.
   That reduces attack surfaces in many cases.
-- For all I know, they may have updated the eligible minters to make sure no contracts were included
-  By the nature of how authentication works, there's no way for me to know.
+  It's not something I generally suggest as a security tactic, but in practice it does cut down possible attacks by cutting down who can interact at all.
+- For all I know, they may have updated the eligible minters to make sure no contracts were included.
+  By the nature of how Merkle trees work, there's no way for me to know.
 
 What do I wish could have been done differently:
 
-- If you find an issue and patch it, you should disclose it.
+- There was no clear way to report issues.
+  It's always good to have some e-mail address or designated contact for these things.
+- The vulnerability should be disclosed, even if it was not exploited.
+  If you find an issue and patch it, you should disclose it.
   It's the responsible thing to do.
   It lets people know that you are on top of the issue.
   For now, I have to assume they were not aware, and chose to ignore it when it was reported.
@@ -167,41 +190,34 @@ What do I wish could have been done differently:
   This may sound petty, but I get pretty annoyed when I spend some free time securing your token, and don't try to exploit it (by finding a partner, in this case), and I get stonewalled.
   There are blackhat hackers as well, and in this case their efforts would probably be worth their while, so make sure to thank your whitehats.
 
-## Why did I wait to disclose publicy?
+## Keeping it to myself
+
+I decided to sit on my hands on this one and not try to cause any more stir.
 
 When the team failed to get back to me within a day and I had received a message saying everything was fine(!), I had to decide how to proceed.
 The attack required both opportunity and knowledge, and given that an attacker could hardly have anticipated the opportunity (the snapshot + the bug) it seemed likely that no one had both.
 I was in a Dark Forest-like situation.
 The fact that the bug was obscure seemed to be its greates strength.
 Even if I just disclosed that there is some bug, that would be enough for any reasonably sophisticated user to go and check out the contract and likely immediately locate the issue.
-I still feel iffy about that decision.
+I still feel iffy about my decision.
 
 I considered finding a partner in crime with whom I could whitehat.
 But that would require some special trust: there would be no guarantee that the person on the other end would not just floor dump their tokens once they got them.
 It seemed less responsible to even attempt.
 And again, just going around looking for someone with a DF in a contract account could raise suspicion.
 
+## Closing thoughts
+
+I think we should consider how we deal with security issues.
+NFT users get rugged and exploited all the time.
+The least we can do is help each other help each other.
+I'm a boring lackluster who likes to point out faults, a bit like an accountant, but honestly, you need people like that, too.
+
+If you want to involve me in the future before deploying a new contract, don't hesitate to ask.
+
 It turned out well in the end, but I would have liked a safer approach.
 
-Once the mint of the passes was over, there was no rush anymore either, so I figured I should wait until after the Deadfrenz mint + reveal buzz was over.
-I want to spark some discussion about security practices in the project and what can be done better in the future, and didn't want that to get drowned out, and I didn't want to cause a panic in the middle of a frenzy.
-I also wanted to check the Deadfrenz contract for any bugs before attracting more attention to it.
-I did, it looks clean.
+I checked the Deadfrenz contract directly after I realized I wouldn't be getting a response from the team.
+The contract looks clean.
 Good job devs!
-
-# TODO: Some more screenshots of convos
-
-## Formal details
-
-The exploits outlined in this repo were reported to the Deadfellaz team on
-- Feb 4, 2022, 15:25 UTC (reentrancy)
-- Feb 5, 2022, 15:46 UTC (cheap mint)
-
-These exploits were reported to the Deadfellaz team via:
-- Twitter: @betty_nft
-- Twitter: @psych_nft
-- Twitter: @Deadfellaz
-- Discord: contact with unnamed mod.
-
-They were reported with a high-level description and proof-of-concept.
 
