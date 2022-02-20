@@ -32,9 +32,6 @@ Either way I never got a proper response.
 
 I was as happy as anyone to hear about the Deadfrenz launch.
 And since I know a thing or two about Solidity, I wanted to check out the contract before I claimed my pass.
-I'll admit the reasons for this were not entirerly honorable.
-You see, it's a tricky problem in NFTs to make sure that launches are fair and that randomness works, so it's often a good idea to inspect some contract source when there's a new launch. 
-Maybe I could try and time my transaction and get a higher rarity score or something, IDK?
 Never hurts to check.
 
 What I did find were two security holes.
