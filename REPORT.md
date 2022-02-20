@@ -116,7 +116,7 @@ But I couldn't, and that is what makes this exploit so different, and also why I
 
 First of all -- I would have if I could, but as a whitehat.
 
-Normally, as a whitehat, if I found this and didn't get an timely response from the team I would just perform the attack myself.
+Normally, as a whitehat, if I found this and didn't get a timely response from the team I would just perform the attack myself.
 That's better than having such an exploit sit out in the open, waiting for a blackhat hacker to steal all the tokens and sell them for market price on OpenSea, making of with a bunch of ETH.
 I would have minted all the tokens in the pool I could exploit, then chat with the devs and figure out how to make sure they get properly distributed.
 100% doable, not even very expensive (except for me, I have to pay a lot of gas).
