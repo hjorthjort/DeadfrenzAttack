@@ -18,7 +18,10 @@ I tried to notify the team, but got little response back.
 Both exploits had to do with minting, so they are no longer exploitable.
 Here is what I found, and what happened, and what I think of it.
 
-**Note**: The team did disclose an issue early on for which they paused the contract, but that is a different issue from the ones I bring up here.
+**Note 1**: I made a proof-of-concept attack for each of the bugs, both work well.
+If you're curious you can check them out here: [[https://github.com/hjorthjort/DeadfrenzAttack]].
+
+**Note 2**: The team did disclose an issue early on for which they paused the contract, but that is a different issue from the ones I bring up here.
 
 ![](screenshots/announcement_discord.png)
 
@@ -38,18 +41,22 @@ What I did find were two security holes.
 One was less severe, and meant that, had people realized it, the pass sale would have lost some revenue.
 One was extremely severe, but I didn't know if it was exploitable.
 
-## The kinda bad
+## The first attack: kinda bad
 
+The first attack meant you could mint for cheaper than you should.
 In short, anyone who was allowed to mint a few different types of paid passes (0.1 ETH or 0.15 ETH each) would not have to pay full price.
+The core issue is that the contract was checking `msg.value` (how many ETH you sent along) inside a `for` loop, which is an anti-pattern.
+
 At most, someone could mint their passes for 1/3rd of the price.
-This would be bad.
+This would be bad for the team, as it would mean losses in revenue.
 
 But even if some users knew, they would each be able to cheat the protocol/team out of at most a few ETH.
 There would be no real loss to users, and the attack does not really scale well.
 I made a proof of concept attack and concluded it was possible, and I told the team.
 There wasn't really much to do about it, except maybe telling people and let them know that they got a discount.
+It's always a good idea to disclose, if nothing else to let users and whitehats like myself know that it's a known issue.
 
-## The very bad
+## The second attack: very bad
 
 The second attack put user funds (passes) at serious risk, and was infinitely scalable.
 If it had been attacked, all your passes could have become worthless and we would need to roll back the whole mint and redo.
@@ -91,9 +98,10 @@ It makes some sense that you would want to send any extra ETH back (though just 
 But what makes this very dangerous is the send happens before any update to the mint contract.
 That's why we always say "checks, effects, interactions".
 
-<blockquote class="twitter-tweet"><p lang="und" dir="ltr"><a href="https://t.co/TfLxm7Rzdc">https://t.co/TfLxm7Rzdc</a> <a href="https://t.co/N76yeGSv9g">pic.twitter.com/N76yeGSv9g</a></p>&mdash; hjort.eth (🥋,🥋) 🦇🔊 (@rikardhjort) <a href="https://twitter.com/rikardhjort/status/1489671383160442884?ref_src=twsrc%5Etfw">February 4, 2022</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+![](screenshots/checks_twitter.png)
+[It's not the first time I've had to say this, and not the last](https://twitter.com/rikardhjort/status/1489671383160442884).
 
-Don't interact with an external address until you have updated your local variables.
+It means: Don't interact with an external address until you have updated your local variables.
 Specifically, the number of minted passes has not been updated yet.
 This bug could thus have been averted if you just put the `if`-clause at the end of the function.
 
