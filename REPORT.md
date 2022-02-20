@@ -1,6 +1,8 @@
 Keep calm and no one will get rekt
 ==================================
 
+![](screenshots/attack_twitter.jpeg) ![](screenshots/shit_twitter.jpeg)
+
 Frenz, fellaz, countrymen,
 
 I'm hjort.eth.
