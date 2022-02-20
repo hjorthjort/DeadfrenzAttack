@@ -124,8 +124,8 @@ I would have minted all the tokens in the pool I could exploit, then chat with t
 But I couldn't.
 Because this is a reentrancy attack, only a contract can execute it.
 I was holding my Deadfella in a regular externally owned address (EOA).
-Because they are using a Merkle proof, and it included the `msg.sender` in the node, there's no way I or anyone else can make the call from any address not included in the snapshot.
-That also means that even if you held your eligible NFT in a contract at the time of the snapshot, you might not be able to perform the reentrancy attack.
+Because the mint was using a Merkle proof, and it included the `msg.sender` in the node, there's no way I or anyone else can make the call from any address not included in the snapshot.
+That also means that even if you held your eligible NFT in a contract at the time of the snapshot, you might not be able to perform the reentrancy attack, unless your contract was very flexible and could implement the attack.
 
 ## So what's the problem?
 
@@ -138,9 +138,16 @@ I later found at least one verified DF holder in the Discord asking if it would 
 
 ![It's almost a bit sad that they don't know they could have minted any number of passes they wanted. A would-be hacker missed their payday here.](screenshots/gnosis_discord.png)
 
+The mod here is saying that the holder can't claim from his smart contract wallet.
+That could mean one of two things.
+Either, they have written some kind of filter that would ensure that no address which is a contract gets included in the whitelist;
+or, they are not aware of how this user could perform the claim -- the UI might not support claiming, but the actual chain code is quite flexible.
+
 If I, or the dev team, could just scan through the eligible addresses and make sure there are none in there which could perform the attack, we could exclude them from the claim by upgrading the Merkle root.
 Some Merkle roots were upgraded several times during the claim period.
-It is entirely possible that the team had realized the problem and patched it themselves.
+It is entirely possible that the team had realized the problem and patched it themselves, without announcing it.
+A safe filter for accounts to exclude them would look something like this: only allow addresses that have sent out a transaction -- these can not be contracts.
+(Note that even if an address has no code on it, it can still be a contract, just one that is not deployed yet.)
 
 ## What damage could have been done?
 
@@ -185,6 +192,8 @@ What do I wish could have been done differently:
   If you find an issue and patch it, you should disclose it.
   It's the responsible thing to do.
   It lets people know that you are on top of the issue.
+  It also helps freindly security folks like myself.
+  If I know you are aware, I don't need to wast my time writing proof-of-concepts and trying to get in touch with you.
   For now, I have to assume they were not aware, and chose to ignore it when it was reported.
 - I you get a whitehat report (like the ones I sent), acknowledge it and connect the whitehat to a dev.
   If you are 100% sure that your devs are aware of the issue, then you should tell the whitehat that, and point to the mitigation (a transaction usually).
@@ -218,11 +227,10 @@ NFT users get rugged and exploited all the time.
 The least we can do is help each other help each other.
 I'm a boring lackluster who likes to point out faults, a bit like an accountant, but honestly, you need people like that, too.
 
-If you want to involve me in the future before deploying a new contract, don't hesitate to ask.
-
 It turned out well in the end, but I would have liked a safer approach.
 
 I checked the Deadfrenz contract directly after I realized I wouldn't be getting a response from the team.
 The contract looks clean.
 Good job devs!
 
+If you want to involve me in the future before deploying a new contract, don't hesitate to ask.
